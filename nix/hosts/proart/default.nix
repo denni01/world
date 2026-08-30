@@ -31,6 +31,18 @@
 
   users.users.dennis = {
     isNormalUser = true;
+    # Pinned, not dynamic. A fresh install must reproduce this uid or a /home
+    # restored from btrbk lands owned by nobody, and the installer's clone into
+    # ~/Developer/world would need the uid guessed at chown time.
+    uid = 1000;
+    # Read at activation, never committed: this repo is public. Written by
+    # scripts/set-password.sh, and by the installer before nixos-install so a
+    # fresh machine is loginable without a post-install step.
+    #
+    # Applied only when the account is created — with mutableUsers true, `passwd`
+    # still wins on a machine where dennis already exists. A missing file warns
+    # and locks the account rather than failing the build.
+    hashedPasswordFile = "/persist/secrets/dennis-password";
     description = "Dennis";
     shell = pkgs.zsh;
     extraGroups = [
@@ -48,6 +60,7 @@
     vim # root's editor; the user's is neovim
     wget
     e2fsprogs # chattr/lsattr, needed by the scripts in scripts/
+    mkpasswd # scripts/set-password.sh
     pciutils
     usbutils
   ];

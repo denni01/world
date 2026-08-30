@@ -1,0 +1,13 @@
+{
+  "model": "opus",
+  "effortLevel": "xhigh",
+  "tui": "fullscreen",
+  "theme": "dark-ansi",
+  "editorMode": "vim",
+  "permissions": {
+    "deny": [
+      "Bash(git *)",
+      "Bash(rm *)"
+    ]
+  }
+}

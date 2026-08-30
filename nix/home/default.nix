@@ -52,6 +52,12 @@ in
 
   home.file.".zshrc".source = dotfile "zsh/zshrc";
 
+  # Only settings.json is managed. The rest of ~/.claude is state — sessions,
+  # projects, credentials — and must not be symlinked into the repo.
+  # settings.local.json stays unmanaged too: it accumulates per-machine
+  # permission grants that are not worth version-controlling.
+  home.file.".claude/settings.json".source = dotfile "claude/settings.json";
+
   # Berkeley Mono is licensed, so it is gitignored — and a flake only copies
   # git-tracked files into the store, which means it can never be packaged as a
   # system font. Symlinking the working tree into the user font path sidesteps

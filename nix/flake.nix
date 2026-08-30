@@ -52,8 +52,21 @@
         ];
       };
 
-      # Consumed by `disko --mode disko --flake .#proart`. Kept out of the NixOS
-      # config so evaluating or switching this machine can never depend on it.
+
+      # Installer ISO. Carries no system closure — it clones main at install
+      # time, so an old ISO still installs a current system.
+      #   nix build .#installer
+      nixosConfigurations.installer = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [ ./hosts/installer ];
+      };
+
+      packages.x86_64-linux.installer =
+        self.nixosConfigurations.installer.config.system.build.isoImage;
+
+      # Consumed by `disko --mode destroy,format,mount --flake .#proart`. Kept out
+      # of the NixOS config so switching this machine can never depend on it.
       diskoConfigurations.proart = import ./hosts/proart/disko.nix;
     };
 }
