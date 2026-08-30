@@ -1,0 +1,10 @@
+# Berkeley Mono is licensed and not redistributable — the font files live here
+# untracked. It is installed as a *user* font via mkOutOfStoreSymlink rather
+# than packaged, because a flake only copies git-tracked files into the store:
+# an ignored file is invisible to evaluation even when it is in the working
+# tree, so it could never be packaged as a system font.
+/fonts/berkeley-mono/
+
+# nixos-rebuild build output
+/result
+/result-*

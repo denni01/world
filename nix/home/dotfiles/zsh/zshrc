@@ -1,0 +1,48 @@
+# ── History ──────────────────────────────────────────────────────────────────
+HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
+[[ -d "${HISTFILE:h}" ]] || mkdir -p "${HISTFILE:h}"
+HISTSIZE=200000
+SAVEHIST=200000
+
+setopt HIST_IGNORE_ALL_DUPS   # a repeated command only appears once
+setopt HIST_IGNORE_SPACE      # leading space keeps a command out of history
+setopt HIST_REDUCE_BLANKS
+setopt HIST_VERIFY            # expand !! and friends before running them
+setopt EXTENDED_HISTORY
+setopt INC_APPEND_HISTORY     # write as you go, not only on exit
+setopt SHARE_HISTORY          # and share between open shells
+
+# ── Behaviour ────────────────────────────────────────────────────────────────
+setopt AUTO_CD                # `foo/` instead of `cd foo/`
+setopt INTERACTIVE_COMMENTS   # allow # comments when typing interactively
+setopt NO_BEEP
+bindkey -v                    # emacs keys; readline muscle memory still works
+
+# ── Completion ───────────────────────────────────────────────────────────────
+autoload -Uz compinit
+compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'   # case-insensitive
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompcache"
+
+PROMPT='$ '
+
+# ── Tool integration ─────────────────────────────────────────────────────────
+# Each guarded, so removing a package from home.packages does not break the shell.
+command -v direnv  >/dev/null && eval "$(direnv hook zsh)"
+command -v zoxide  >/dev/null && eval "$(zoxide init zsh)"
+command -v fzf     >/dev/null && source <(fzf --zsh)
+
+# ── Aliases ──────────────────────────────────────────────────────────────────
+command -v eza >/dev/null && {
+  alias ls='eza'
+  alias ll='eza -l --git'
+  alias la='eza -la --git'
+  alias tree='eza --tree'
+}
+command -v bat >/dev/null && alias cat='bat --plain'
+
+# Rebuild shorthands — this config lives at ~/Developer/world/nix.
+alias nrs='sudo nixos-rebuild switch --flake ~/Developer/world/nix#proart'
+alias nrb='sudo nixos-rebuild boot --flake ~/Developer/world/nix#proart'

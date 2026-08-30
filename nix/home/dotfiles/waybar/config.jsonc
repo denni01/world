@@ -1,0 +1,65 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 34,
+  "spacing": 8,
+
+  "modules-left": ["hyprland/workspaces", "hyprland/submap"],
+  "modules-center": [],
+  "modules-right": ["pulseaudio", "bluetooth", "network", "cpu", "memory", "temperature", "clock", "tray"],
+
+  "hyprland/workspaces": {
+    "format": "{id}",
+    "on-click": "activate",
+    "sort-by-number": true
+  },
+
+  "clock": {
+    "format": "{:%a %d %b  %H:%M}",
+    "tooltip-format": "<tt>{calendar}</tt>"
+  },
+
+  "cpu": {
+    "format": "cpu {usage}%",
+    "interval": 3
+  },
+
+  "memory": {
+    // 187 GiB total, so percentage is more useful than absolute here.
+    "format": "mem {percentage}%",
+    "interval": 5
+  },
+
+  "temperature": {
+    // k10temp Tctl, addressed by PCI device path — /sys/class/hwmon/hwmonN
+    // numbering shifts between boots (k10temp was hwmon5 this boot).
+    "hwmon-path-abs": "/sys/devices/pci0000:00/0000:00:18.3/hwmon",
+    "input-filename": "temp1_input",
+    "critical-threshold": 85,
+    "format": "{temperatureC}°C"
+  },
+
+  "network": {
+    "format-wifi": "{essid} {signalStrength}%",
+    "format-ethernet": "eth",
+    "format-disconnected": "offline",
+    "tooltip-format": "{ifname}: {ipaddr}"
+  },
+
+  "bluetooth": {
+    "format": "bt",
+    "format-disabled": "",
+    "format-connected": "bt {num_connections}",
+    "on-click": "blueman-manager"
+  },
+
+  "pulseaudio": {
+    "format": "vol {volume}%",
+    "format-muted": "muted",
+    "on-click": "pavucontrol"
+  },
+
+  "tray": {
+    "spacing": 8
+  }
+}

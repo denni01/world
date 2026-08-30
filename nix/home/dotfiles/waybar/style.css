@@ -1,0 +1,49 @@
+/* Placeholder styling to match hypr/colors.conf. Retheming means editing both. */
+
+* {
+  font-family: "Berkeley Mono", "JetBrainsMono Nerd Font", monospace;
+  font-size: 13px;
+  border: none;
+  border-radius: 0;
+  min-height: 0;
+}
+
+window#waybar {
+  background: rgba(26, 27, 38, 0.85);
+  color: #c0caf5;
+}
+
+#workspaces button {
+  padding: 0 10px;
+  color: #565f89;
+  background: transparent;
+}
+
+#workspaces button.active {
+  color: #1a1b26;
+  background: #7aa2f7;
+}
+
+#workspaces button:hover {
+  background: #414868;
+  color: #c0caf5;
+}
+
+#clock,
+#cpu,
+#memory,
+#temperature,
+#network,
+#bluetooth,
+#pulseaudio,
+#tray {
+  padding: 0 10px;
+}
+
+#temperature.critical {
+  color: #f7768e;
+}
+
+#network.disconnected {
+  color: #f7768e;
+}

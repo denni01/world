@@ -1,0 +1,39 @@
+# Ghostty.
+#
+# Terminals are excluded from xremap in Phase 5, precisely so Ghostty can handle
+# the macOS bindings itself — otherwise a global Super+C -> Ctrl+C remap would
+# send SIGINT every time you tried to copy. Ghostty has real macOS heritage, so
+# these are first-class rather than a workaround.
+
+font-family = Berkeley Mono
+font-family = JetBrainsMono Nerd Font
+font-size = 13
+
+theme = TokyoNight
+background-opacity = 0.95
+
+window-padding-x = 8
+window-padding-y = 8
+window-decoration = false
+
+# macOS-style bindings, handled here rather than by xremap.
+keybind = super+c=copy_to_clipboard
+keybind = super+v=paste_from_clipboard
+keybind = super+n=new_window
+keybind = super+equal=increase_font_size:1
+keybind = super+minus=decrease_font_size:1
+keybind = super+zero=reset_font_size
+
+# Note: Super+1..9 belongs to Hyprland workspace switching and never reaches
+# Ghostty, so terminal tabs/splits are left to tmux.
+
+# Cursor: solid block, no blinking.
+cursor-style = block
+cursor-style-blink = false
+
+# `cursor-style = block` above is only a default — Ghostty's shell integration
+# includes a `cursor` feature that lets the shell (and TUI apps) override the
+# shape via DECSCUSR, which is what turns it into a thin bar at the prompt.
+# Disabling just that feature keeps the block; the rest of shell integration
+# (title, path reporting, sudo handling) stays on.
+shell-integration-features = no-cursor
