@@ -60,6 +60,7 @@
     vim # root's editor; the user's is neovim
     wget
     e2fsprogs # chattr/lsattr, needed by the scripts in scripts/
+    gptfdisk # sgdisk; hardware.nix documents partition-label surgery with it
     mkpasswd # scripts/set-password.sh
     pciutils
     usbutils

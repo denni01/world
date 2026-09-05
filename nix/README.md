@@ -1,3 +1,5 @@
+| Swap | `/dev/nvme0n1p3`, partlabel `swap`, UUID `9568a369-3897-487d-9178-fceb06cc429e` |
+| GPT backup | `/persist/gpt-backup.bin` — restore with `sgdisk --load-backup=` |
 # nix
 
 NixOS configuration for `proart`. Everything the machine is, expressed as a
@@ -148,7 +150,8 @@ Reference card. Everything below assumes nothing about the machine being in a wo
 | Disk | `/dev/nvme0n1` (Samsung 990 PRO 4 TB) |
 | btrfs | `/dev/nvme0n1p2`, partlabel `root`, UUID `49f65f6a-f464-4f23-b0e1-336131b10de3` |
 | ESP | `/dev/nvme0n1p1`, partlabel `EFI`, UUID `BC7C-0B61`, vfat, 1 GiB |
-| Swap | `/dev/nvme0n1p3`, UUID `9568a369-3897-487d-9178-fceb06cc429e` (no partlabel) |
+| Swap | `/dev/nvme0n1p3`, partlabel `swap`, UUID `9568a369-3897-487d-9178-fceb06cc429e` |
+| GPT backup | `/persist/gpt-backup.bin` — restore with `sgdisk --load-backup=` |
 | Subvolumes | `rootfs` `home` `nix` `log` `docker` `persist` `snapshots` |
 | Flake | `~/Developer/world/nix#proart` |
 
@@ -157,7 +160,8 @@ to select: the fallbacks are a TTY (`Ctrl+Alt+F2`) and an older generation at th
 
 **Every NixOS generation is self-contained**, including its initrd and the fstab inside it, which
 is the property most of this relies on. Current generations mount by partition label; generations
-from before that change mount by UUID. Both work, so rolling back across it is safe.
+from before that change mount by UUID. Both work, so rolling back across it is safe. The
+UUIDs above are recorded for exactly that case — nothing in the config uses them now.
 
 ### Level 1 — bad rebuild, system still boots
 ```bash

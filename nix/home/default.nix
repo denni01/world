@@ -6,7 +6,10 @@ let
   # mkOutOfStoreSymlink points at the WORKING TREE, so edits apply immediately
   # with no rebuild. The cost is a baked absolute path: this repo has to be
   # cloned here for the home configuration to be complete.
-  repo = "${config.home.homeDirectory}/Developer/world/nix";
+  # Also XDG_PROJECTS_DIR below — the repo lives under the projects directory,
+  # so the two are the same path and should not drift apart.
+  developer = "${config.home.homeDirectory}/Developer";
+  repo = "${developer}/world/nix";
   dotfile = path: config.lib.file.mkOutOfStoreSymlink "${repo}/home/dotfiles/${path}";
 in
 {
@@ -39,9 +42,23 @@ in
 
     direnv
     nix-direnv
+
+    blueman
   ];
 
-  # Whole directories, so a new config file appears without a rebuild.
+  xdg.userDirs = {
+    enable = true;
+    createDirectories = true;
+
+    projects = developer;
+
+    music = null;
+    pictures = null;
+    publicShare = null;
+    templates = null;
+    videos = null;
+  };
+
   xdg.configFile = {
     "hypr".source = dotfile "hypr";
     "waybar".source = dotfile "waybar";
@@ -52,10 +69,6 @@ in
 
   home.file.".zshrc".source = dotfile "zsh/zshrc";
 
-  # Only settings.json is managed. The rest of ~/.claude is state — sessions,
-  # projects, credentials — and must not be symlinked into the repo.
-  # settings.local.json stays unmanaged too: it accumulates per-machine
-  # permission grants that are not worth version-controlling.
   home.file.".claude/settings.json".source = dotfile "claude/settings.json";
 
   # Berkeley Mono is licensed, so it is gitignored — and a flake only copies

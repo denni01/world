@@ -97,14 +97,10 @@ in
     ];
   };
 
-  # Still by-UUID, so still specific to this disk. disko labels swap "swap", but
-  # p3 here has no GPT name yet, so by-partlabel/swap would not resolve. To
-  # switch, name the live partition first (metadata only, no data touched):
-  #   sgdisk --backup=/persist/gpt-backup.bin /dev/nvme0n1
-  #   sgdisk --change-name=3:swap /dev/nvme0n1
-  # Until then a fresh install has no swap and no hibernation.
+  # Sized above RAM so hibernation has somewhere to go. Labelled to match what
+  # disko creates
   swapDevices = [
-    { device = "/dev/disk/by-uuid/9568a369-3897-487d-9178-fceb06cc429e"; }
+    { device = "/dev/disk/by-partlabel/swap"; }
   ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";

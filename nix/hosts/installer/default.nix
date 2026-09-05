@@ -33,7 +33,7 @@ let
       git
       mkpasswd
       nixos-install-tools
-      inputs.disko.packages.${pkgs.system}.disko
+      inputs.disko.packages.${pkgs.stdenv.hostPlatform.system}.disko
       coreutils
     ];
     text = ''
@@ -82,6 +82,8 @@ in
   imports = [ (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix") ];
 
   environment.systemPackages = [ installProart ];
+
+  boot.kernelPackages = pkgs.linuxKernel.packages.linux_7_2;
 
   # The installer clones over https and nixos-install evaluates a flake.
   nix.settings.experimental-features = [
