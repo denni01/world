@@ -8,6 +8,7 @@
 #   ├── nix         -> /nix
 #   ├── log         -> /var/log           survives a root rollback
 #   ├── docker      -> /var/lib/docker    nodatacow, excluded from snapshots
+#   ├── models      -> /var/lib/llm-models  nodatacow, excluded from snapshots
 #   ├── persist     -> /persist           impermanence-ready, unused
 #   └── snapshots   -> /.snapshots        must sit outside what it snapshots
 #
@@ -77,6 +78,29 @@ in
 
   fileSystems."/var/lib/docker" = btrfsVol "subvol=docker";
   fileSystems."/.snapshots" = btrfsVol "subvol=snapshots";
+
+  # Its own literal attrset, not btrfsVol: the helper hardcodes compress=zstd:1,
+  # and NODATACOW cannot coexist with compression.
+  #
+  # disko.nix declares this subvolume, so a fresh install creates it like any
+  # other. It needed one manual `btrfs subvolume create /mnt/btrfs/models` on
+  # THIS machine only, because the subvolume was added after install and disko is
+  # destructive — the same would have been true of `docker` had it been added
+  # late. That migration is done.
+  #
+  # Deliberately NOT nofail, matching `docker` above. A missing subvolume should
+  # fail loudly: with nofail the weights silently land on rootfs instead and get
+  # swept into btrbk's hourly snapshots, which is a worse outcome than a boot
+  # that stops and tells you.
+  fileSystems."/var/lib/llm-models" = {
+    device = pool;
+    fsType = "btrfs";
+    options = [
+      "subvol=models"
+      "nodatacow"
+      "noatime"
+    ];
+  };
 
   # btrbk operates on the top level so every subvolume is reachable below it.
   fileSystems."/mnt/btrfs" = {

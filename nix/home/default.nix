@@ -1,8 +1,18 @@
 # Home Manager installs packages, sets session variables and symlinks dotfiles.
 # It does not generate the configs themselves — see home/dotfiles/.
-{ config, pkgs, ... }:
+{
+  config,
+  inputs,
+  pkgs,
+  ...
+}:
 
 let
+  unstable = import inputs.nixpkgs-unstable {
+    inherit (pkgs.stdenv.hostPlatform) system;
+    config.allowUnfree = true;
+  };
+
   # mkOutOfStoreSymlink points at the WORKING TREE, so edits apply immediately
   # with no rebuild. The cost is a baked absolute path: this repo has to be
   # cloned here for the home configuration to be complete.
@@ -21,6 +31,7 @@ in
   # has to be on elephant's PATH (modules/nixos/desktop.nix).
   home.packages = with pkgs; [
     claude-code
+    unstable.opencode
 
     chromium
     firefox
@@ -65,6 +76,7 @@ in
     "ghostty".source = dotfile "ghostty";
     "tmux".source = dotfile "tmux";
     "nvim".source = dotfile "nvim";
+    "opencode".source = dotfile "opencode";
   };
 
   home.file.".zshrc".source = dotfile "zsh/zshrc";

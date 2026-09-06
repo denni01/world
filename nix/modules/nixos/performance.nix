@@ -28,8 +28,6 @@
     "kernel.sysrq" = 1;
   };
 
-  # If a large Nix build ever exhausts this, move the daemon's scratch space
-  # with systemd.services.nix-daemon.environment.TMPDIR rather than growing it.
   boot.tmp = {
     useTmpfs = true;
     tmpfsSize = "64G";
@@ -43,11 +41,14 @@
 
   nix = {
     settings = {
-      # Eight builds of four cores keeps the machine usable during a rebuild,
-      # versus the default of up to 32 concurrent builds each using every core.
       max-jobs = 8;
       cores = 4;
       trusted-users = [ "@wheel" ];
+
+      extra-substituters = [ "https://cache.nixos-cuda.org" ];
+      extra-trusted-public-keys = [
+        "cache.nixos-cuda.org:74DUi4Ye579gUqzH4ziL9IyiJBlDpMRn9MBN8oNan9M="
+      ];
     };
     gc = {
       automatic = true;
@@ -56,7 +57,4 @@
     };
     optimise.automatic = true;
   };
-
-  # Not set: zramSwap (pointless at this RAM size), services.fstrim (the mounts
-  # already carry discard=async), mitigations=off (security defaults stay).
 }

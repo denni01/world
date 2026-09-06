@@ -15,8 +15,7 @@ in
 
   hardware.firmware = lib.optional (mt6639Firmware != null) mt6639Firmware;
 
-  # Uses the module rather than the bare package so TCP+UDP 53317 is opened —
-  # without it the app runs but no peer can discover this machine.
+  # Uses the module rather than the bare package so TCP+UDP 53317 is opened
   programs.localsend = {
     enable = true;
     openFirewall = true;
@@ -27,4 +26,18 @@ in
   # the preferred route back to the sender, which silently breaks peer discovery
   # whenever this machine is multi-homed (e.g. ethernet and WiFi on one subnet).
   networking.firewall.checkReversePath = "loose";
+
+  systemd.user.services.nm-applet = {
+    description = "NetworkManager applet";
+    wantedBy = [ "graphical-session.target" ];
+    partOf = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
+      Restart = "on-failure";
+      RestartSec = 3;
+    };
+  };
+
+  environment.systemPackages = [ pkgs.networkmanagerapplet ];
 }

@@ -9,6 +9,7 @@
     ./filesystems.nix
     ./fonts.nix
     ./input.nix
+    ./llm.nix
     ./performance.nix
     ./pihole.nix
   ];

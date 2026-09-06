@@ -103,6 +103,14 @@
                   "noatime"
                 ];
               };
+              # No need to snapshot models
+              "models" = {
+                mountpoint = "/var/lib/llm-models";
+                mountOptions = [
+                  "nodatacow"
+                  "noatime"
+                ];
+              };
               # Must sit outside everything it snapshots.
               "snapshots" = {
                 mountpoint = "/.snapshots";

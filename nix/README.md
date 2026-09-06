@@ -1,5 +1,3 @@
-| Swap | `/dev/nvme0n1p3`, partlabel `swap`, UUID `9568a369-3897-487d-9178-fceb06cc429e` |
-| GPT backup | `/persist/gpt-backup.bin` — restore with `sgdisk --load-backup=` |
 # nix
 
 NixOS configuration for `proart`. Everything the machine is, expressed as a
@@ -11,7 +9,7 @@ It covers everything from a bad rebuild through to a dead disk.
 ## Layout
 
 ```
-flake.nix                 nixpkgs 26.05, home-manager, xremap
+flake.nix                 nixpkgs 26.05 + unstable (LLM only), home-manager, xremap, disko
 hosts/proart/
   default.nix             host identity: hostname, locale, user, stateVersion
   hardware.nix            btrfs subvolume mounts, kernel modules, swap
@@ -20,9 +18,10 @@ modules/nixos/
   filesystems.nix         btrbk snapshots, monthly scrub
   fonts.nix               Berkeley Mono + fallbacks
   networking.nix          NetworkManager, Bluetooth, localsend, rpfilter
-  nvidia.nix              RTX 3090, open modules, pinned driver
-  desktop.nix             Hyprland/UWSM, greetd, PipeWire, launcher services
+  nvidia.nix              2x RTX 3090 (compute-only), pinned driver, power caps
+  desktop.nix             Hyprland/UWSM on the iGPU, greetd, PipeWire, launchers
   input.nix               hid_apple, xremap macOS keybindings
+  llm.nix                 llama.cpp + llama-swap on the 3090s, manual start
   docker.nix
   performance.nix         sysctl, governor, tmpfs, nix build parallelism
 home/
@@ -92,17 +91,25 @@ whether a fresh clone has them.
 
 ## Hardware notes
 
-Facts that were expensive to learn and are easy to forget:
-
 - **Kernel is pinned to 7.2.** The onboard MediaTek MT7927 WiFi has no driver
   before it. Do not drop to an older kernel expecting WiFi to survive.
 - **The NVIDIA driver is pinned to 595.91.07.** 26.05 ships 595.71.05, which
   does not compile against 7.2 — Linux removed `strncpy` and the driver still
   calls it. `modules/nixos/nvidia.nix` carries removal instructions.
 - **DRM card numbers move.** The NVIDIA card has been card0, then card1, then
-  card1 again with the iGPU at card2. Never address a GPU by card number; and
-  `AQ_DRM_DEVICES` cannot take a symlink, so a by-path value silently yields no
-  GPU at all.
+  card1 again with the iGPU at card2; adding the second 3090 renumbered things
+  again and shifted the iGPU from `79:00.0` to `7a:00.0`. Never address a GPU by
+  card number; and `AQ_DRM_DEVICES` cannot take a symlink, so a by-path value
+  silently yields no GPU at all. `desktop.nix` therefore resolves the by-path
+  symlink to a real `cardN` at session start, via `/etc/xdg/uwsm/env-hyprland`.
+- **Two 3090s, both headless.** `01:00.0` (top slot, 420 W SKU) and `03:00.0`
+  (bottom slot, 350 W SKU) are reserved for compute; the Raphael iGPU at
+  `7a:00.0` drives the display. Both cards are capped to 280 W with a 1695 MHz SM
+  ceiling — they are 2.5-slot coolers in adjacent slots. The bottom card gets the
+  heavier model: the top card's intake fans face the backplate below them.
+- **Each 3090 is alone in its IOMMU group** (14 and 16), with only its own
+  HDMI-audio function. VFIO passthrough needs no ACS override — and the host
+  already drives neither card, which is the other prerequisite.
 - **`/var/lib/docker` is a nodatacow subvolume** and is excluded from snapshots.
 
 ## Bootstrapping a new machine
@@ -117,6 +124,55 @@ Facts that were expensive to learn and are easy to forget:
 7. Verify Pi-hole blocking loaded:
    `curl -s http://127.0.0.1:8080/api/info/ftl | grep -o '"gravity":[0-9-]*'`.
    A count of `-2` means the database is not attached.
+
+## Local LLM
+
+llama.cpp behind llama-swap on **http://127.0.0.1:8090** (8080 is pihole-web).
+`modules/nixos/llm.nix`. **Manual start** — it holds ~40 GB of VRAM when running:
+
+```
+sudo systemctl start llama-swap
+curl -s http://127.0.0.1:8090/v1/models | jq '.data[].id'
+```
+
+One model resident per card, no tensor split. `03:00.0` (bottom, cooler intake)
+runs the primary; `01:00.0` runs the small model. Both stay loaded, so opencode's
+`model`/`small_model` switch costs nothing.
+
+`CUDA_DEVICE_ORDER=PCI_BUS_ID` is set on every model. Without it CUDA orders
+devices by its own speed heuristic, not PCI order, and since the two 3090s are
+different board SKUs a model silently lands on the wrong card.
+
+**Two packages come from `nixpkgs-unstable`**, scoped in `llm.nix` and
+`home/default.nix`: 26.05's llama-cpp is b9190, which predates the `qwen35`
+architecture and a CUDA correctness fix — an older build runs at full speed and
+emits *garbage*. Drop the input once 26.05's successor catches up.
+
+CUDA is not in cache.nixos.org; `performance.nix` adds `cache.nixos-cuda.org`
+(**not** the dead `cuda-maintainers.cachix.org`). llama-cpp itself still compiles
+locally — tens of minutes.
+
+### Before the first switch
+
+The models subvolume is the one piece disko did not create, since it was added to
+a live machine:
+
+```
+sudo btrfs subvolume create /mnt/btrfs/models
+```
+
+The mount is `nofail`, so skipping this will not break the boot — but the weights
+then land on `rootfs` and get swept into hourly snapshots. Confirm with
+`findmnt /var/lib/llm-models`.
+
+Weights (world-readable; llama-swap is a `DynamicUser`):
+
+```
+hf download unsloth/Qwen3.8-27B-GGUF --include '*UD-Q4_K_XL*' \
+  --local-dir /var/lib/llm-models/qwen3.8-27b
+hf download unsloth/GLM-4.7-Flash-GGUF --include '*UD-Q4_K_XL*' \
+  --local-dir /var/lib/llm-models/glm-4.7-flash
+```
 
 ## DNS
 
@@ -152,7 +208,7 @@ Reference card. Everything below assumes nothing about the machine being in a wo
 | ESP | `/dev/nvme0n1p1`, partlabel `EFI`, UUID `BC7C-0B61`, vfat, 1 GiB |
 | Swap | `/dev/nvme0n1p3`, partlabel `swap`, UUID `9568a369-3897-487d-9178-fceb06cc429e` |
 | GPT backup | `/persist/gpt-backup.bin` — restore with `sgdisk --load-backup=` |
-| Subvolumes | `rootfs` `home` `nix` `log` `docker` `persist` `snapshots` |
+| Subvolumes | `rootfs` `home` `nix` `log` `docker` `models` `persist` `snapshots` |
 | Flake | `~/Developer/world/nix#proart` |
 
 The greeter offers a single session, `Hyprland (uwsm-managed)`. There is no fallback desktop

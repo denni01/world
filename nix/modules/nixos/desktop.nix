@@ -1,4 +1,5 @@
 # Wayland desktop: Hyprland under UWSM, greetd for login, PipeWire for audio.
+# The compositor is pinned to one GPU — see displayDevice below.
 {
   config,
   lib,
@@ -7,6 +8,19 @@
 }:
 
 let
+  # Which PCI device drives the desktop. Change this one line, move the cable,
+  # then `nixos-rebuild boot` and reboot. LIBVA_DRIVER_NAME is derived from it,
+  # so the two cannot drift apart.
+  #
+  #   0000:7a:00.0  Raphael iGPU          (current)
+  #   0000:01:00.0  RTX 3090, top slot
+  #   0000:03:00.0  RTX 3090, bottom slot
+  displayDevice = "0000:7a:00.0";
+  displayIsNvidia = builtins.elem displayDevice [
+    "0000:01:00.0"
+    "0000:03:00.0"
+  ];
+
   # Offer only the UWSM session. programs.hyprland also registers a bare
   # `hyprland` one, which starts the compositor but never activates
   # graphical-session.target — so elephant, walker and xremap stay dead, with no
@@ -28,6 +42,8 @@ in
 
   services.greetd = {
     enable = true;
+    useTextGreeter = true;
+
     settings.default_session = {
       command = lib.concatStringsSep " " [
         (lib.getExe pkgs.tuigreet)
@@ -65,19 +81,38 @@ in
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
-    LIBVA_DRIVER_NAME = "nvidia";
-    NVD_BACKEND = "direct";
 
-    # AQ_DRM_DEVICES is deliberately unset. Pinning the GPU is unnecessary (the
-    # iGPU has no display attached) and aquamarine does not resolve symlinks in
-    # it, so a by-path value yields no GPU at all and Hyprland aborts with
-    # "CBackend::create() failed!". A real /dev/dri/cardN path would work, but
-    # card numbering is not stable across boots.
-    #
-    # Also deliberately unset: GBM_BACKEND (breaks Firefox/Chromium on current
-    # drivers) and WLR_NO_HARDWARE_CURSORS (wlroots-only). Both appear in older
-    # guides.
+    # Follows displayDevice. Pointing VA-API at nvidia while an AMD compositor
+    # drives the screen does not error — it silently loses hardware video decode
+    # in Firefox and Chromium.
+    LIBVA_DRIVER_NAME = if displayIsNvidia then "nvidia" else "radeonsi";
+  }
+  # NVD_BACKEND belongs to nvidia-vaapi-driver and means nothing to radeonsi.
+  // lib.optionalAttrs displayIsNvidia {
+    NVD_BACKEND = "direct";
   };
+
+  # AQ_DRM_DEVICES must name a real /dev/dri/cardN. aquamarine does not resolve
+  # symlinks, so the stable by-path name yields no GPU at all and Hyprland aborts
+  # with "CBackend::create() failed!" — and cardN itself moves across boots. So
+  # resolve the by-path symlink at session start rather than writing a fixed
+  # value into environment.sessionVariables.
+  #
+  # uwsm sources uwsm/env-<lowercased XDG_CURRENT_DESKTOP> from every directory
+  # in XDG_CONFIG_DIRS, which starts with /etc/xdg. The files are POSIX shell, so
+  # the command substitution below works.
+  #
+  # Deliberately still unset: GBM_BACKEND (breaks Firefox/Chromium on current
+  # drivers) and WLR_NO_HARDWARE_CURSORS (wlroots-only). Both appear in older
+  # guides.
+  environment.etc."xdg/uwsm/env-hyprland".text = ''
+    card=$(readlink -f /dev/dri/by-path/pci-${displayDevice}-card 2>/dev/null || true)
+    # Export only if it resolved. An EMPTY AQ_DRM_DEVICES is itself the hard
+    # failure; letting aquamarine choose is the safer fallback.
+    if [ -n "$card" ] && [ -e "$card" ]; then
+      export AQ_DRM_DEVICES="$card"
+    fi
+  '';
 
   environment.systemPackages = with pkgs; [
     waybar
