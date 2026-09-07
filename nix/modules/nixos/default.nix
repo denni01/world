@@ -12,5 +12,6 @@
     ./llm.nix
     ./performance.nix
     ./pihole.nix
+    ./sandbox
   ];
 }

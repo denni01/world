@@ -94,14 +94,17 @@ in
           sampling = qwenSampling;
         };
 
-        "qwen3.8-27b-q6" = mkModel {
-          model = "qwen3.8-27b-q6/Qwen3.8-27B-UD-Q6_K.gguf";
+        # Refusal-ablated builds; upstream huihui-ai/Huihui-Qwen3.8-27B-abliterated-GGUF.
+        # The stock Q6/Q8 GGUFs are still under qwen3.8-27b-q6/ and qwen3.8-27b-q8/
+        # if these ever need to be swapped back.
+        "qwen3.8-27b-uncensored-q6" = mkModel {
+          model = "qwen3.8-27b-uncensored-q6/Huihui-Qwen3.8-27B-abliterated-UD-Q6_K_XL.gguf";
           ctx = 262144;
           sampling = qwenSampling;
         };
 
-        "qwen3.8-27b-q8" = mkModel {
-          model = "qwen3.8-27b-q8/Qwen3.8-27B-Q8_0.gguf";
+        "qwen3.8-27b-uncensored-q8" = mkModel {
+          model = "qwen3.8-27b-uncensored-q8/Huihui-Qwen3.8-27B-abliterated-UD-Q8_K_XL.gguf";
           ctx = 262144;
           kv = kvQ8;
           sampling = qwenSampling;

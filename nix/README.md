@@ -1,10 +1,10 @@
 # nix
 
-NixOS configuration for `proart`. Everything the machine is, expressed as a
-flake, so the install is reproducible and recoverable.
+NixOS configuration for the `proart` machine.
+
+Goal: All configuration is a flake for reproducibility and recoverability.
 
 **If something is broken and you need to get back in, jump to [Recovery](#recovery).**
-It covers everything from a bad rebuild through to a dead disk.
 
 ## Layout
 
@@ -23,6 +23,7 @@ modules/nixos/
   input.nix               hid_apple, xremap macOS keybindings
   llm.nix                 llama.cpp + llama-swap on the 3090s, manual start
   docker.nix
+  sandbox/                opencode in a container; egress allowlist, no NAT
   performance.nix         sysctl, governor, tmpfs, nix build parallelism
 home/
   default.nix             user packages, dotfile symlinks, git
@@ -42,15 +43,9 @@ sudo nixos-rebuild boot   --flake ~/Developer/world/nix#proart   # or: nrb
 Use `boot` + reboot for kernel, GPU-driver or filesystem changes; `switch` for
 everything else.
 
-### Two traps worth knowing
+### Config Validation
 
-**A flake only sees git-tracked files.** A new `.nix` file that has not been
-`git add`ed is invisible to `nixos-rebuild`, which then fails with a confusing
-"file not found". This is the single most common way to lose an hour.
-
-**Validate the desktop config before rebooting into it.** Hyprland treats some
-config errors as fatal and exits, and the greeter bounces you straight back with
-the message on screen for about half a second:
+Validate desktop config before rebooting into it.
 
 ```sh
 Hyprland --verify-config
@@ -58,36 +53,13 @@ Hyprland --verify-config
 
 ## Dotfiles
 
-`home/dotfiles/` holds real config files, symlinked into `~/.config` via
-`mkOutOfStoreSymlink` — they point at the **working tree**, so edits apply
-immediately (`hyprctl reload`) with no rebuild. The trade-off is a baked
-absolute path: this repo must be cloned to `~/Developer/world/nix` for the home
-configuration to be complete.
+`home/dotfiles/` holds live config files which are symlinked into `~/.config`.
 
-Nix owns packages, services and session variables. It does not generate these
-files.
+## Manual Setup
 
-## Things that need supplying by hand
-
-Almost everything is committed, including the MT6639 Bluetooth blob — it is
-redistributable firmware for hardware you own. Only Berkeley Mono is held out,
-for licence reasons.
-
-| What | Where | If missing |
-|---|---|---|
-| Berkeley Mono | `fonts/berkeley-mono/` | falls back to JetBrainsMono Nerd Font |
-| nvim config | `home/dotfiles/nvim/` | placeholder only; port pending |
-
-Berkeley Mono is gitignored, which also puts it out of reach of the flake: only
-git-tracked files reach the store, so it could never be packaged as a system
-font. It is installed as a *user* font through `mkOutOfStoreSymlink` instead,
-read from the working tree at runtime — so dropping the files in place is enough,
-with no rebuild.
-
-That distinction matters for anything added later. **Build-time** assets must
-physically reach the store, so they have to be tracked. **Runtime** assets behind
-`mkOutOfStoreSymlink` never enter the store, so tracking them only decides
-whether a fresh clone has them.
+- Berkeley Mono Font
+    - Stored in `fonts/berkeley-mono`
+- MT6639 Bluetooth Blob for Motherboard Chipset
 
 ## Hardware notes
 
@@ -173,6 +145,33 @@ hf download unsloth/Qwen3.8-27B-GGUF --include '*UD-Q4_K_XL*' \
 hf download unsloth/GLM-4.7-Flash-GGUF --include '*UD-Q4_K_XL*' \
   --local-dir /var/lib/llm-models/glm-4.7-flash
 ```
+
+## Agent sandbox
+
+opencode in a container that can reach llama-swap and an allowlisted slice of the
+internet, and nothing else. `modules/nixos/sandbox/`.
+
+```sh
+opencode-sandbox                          # mounts $PWD at /workspace
+opencode-sandbox ~/Developer/foo          # mounts that instead
+opencode-sandbox ~/Developer/foo -- bash  # a shell, not opencode
+```
+
+The docker network is `--internal`, so there is no NAT and no route out; the
+bridge gateway carries the only two things reachable, `172.28.0.1:8090`
+(socket-proxied to llama-swap on loopback) and `:3128` (squid).
+
+```sh
+git worktree add ~/Developer/agent-x -b agent/x
+opencode-sandbox ~/Developer/agent-x
+cd ~/Developer/agent-x && git diff
+```
+
+The allowlist is `sandbox/allowlist.nix`, ~200 hosts vendored from [GitHub's
+Copilot allowlist][https://docs.github.com/en/copilot/reference/copilot-allowlist-reference]; add a line and rebuild. It filters by host
+only
+
+> Note: `journalctl -u squid` shows `TCP_DENIED/403` when something is blocked.
 
 ## DNS
 
