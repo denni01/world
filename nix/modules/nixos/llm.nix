@@ -17,6 +17,8 @@ let
   llamaServer = lib.getExe' llamaCpp "llama-server";
   modelsDir = "/var/lib/llm-models";
   bothCards = [ "CUDA_DEVICE_ORDER=PCI_BUS_ID" ];
+  # -ts 1/1 assumes both cards are present; the windows-vm hook stops this
+  # service before taking 0000:01:00.0 away.
   splitFlags = [
     "-sm layer"
     "-ts 1/1"

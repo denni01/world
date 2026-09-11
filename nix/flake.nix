@@ -26,6 +26,11 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    microvm = {
+      url = "github:astro/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -54,6 +59,15 @@
         ];
       };
 
+
+      nixosConfigurations.workvm = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          ./hosts/workvm
+        ];
+      };
 
       # Installer ISO. Carries no system closure — it clones main at install
       # time, so an old ISO still installs a current system.

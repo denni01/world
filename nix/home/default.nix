@@ -23,6 +23,8 @@ let
   dotfile = path: config.lib.file.mkOutOfStoreSymlink "${repo}/home/dotfiles/${path}";
 in
 {
+  imports = [ ./webapps.nix ];
+
   home.username = "dennis";
   home.homeDirectory = "/home/dennis";
   home.stateVersion = "26.05";
@@ -50,11 +52,64 @@ in
     zoxide
     fzf
     btop
+    dnsutils
 
     direnv
     nix-direnv
 
     blueman
+
+    # ---------------------------------------------------------------- neovim
+    # Everything nvim shells out to comes from here rather than from :Mason.
+    # Mason fetches prebuilt binaries that assume FHS paths, which is a standing
+    # source of breakage on NixOS, and it puts a mutable unpinned tool tree
+    # outside the flake. lua/plugins/*.lua therefore never names a store path —
+    # it resolves these off $PATH with vim.fn.exepath.
+
+    # Language servers. rust-analyzer is driven by rustaceanvim, not by
+    # vim.lsp.enable; the rest are enabled in lua/plugins/lsp.lua.
+    lua-language-server
+    gopls
+    rust-analyzer
+    vtsls
+    sourcekit-lsp
+    pyright
+    nixd
+
+    # Formatters, wired up per-filetype in lua/plugins/format.lua.
+    stylua
+    nixfmt # RFC-style; the nixfmt-rfc-style alias is deprecated in 26.05
+    gofumpt
+    rustfmt
+    shfmt
+    prettierd
+    swift-format
+
+    # Debug adapters.
+    delve # Go, via nvim-dap-go
+    vscode-js-debug # Node/TS, provides `js-debug`
+    lldb # Swift, provides `lldb-dap`
+
+    # codelldb lives inside a VS Code extension derivation with no bin/ of its
+    # own, so expose just the adapter. Rust uses this rather than lldb-dap
+    # because it carries the Rust type formatters.
+    (writeShellScriptBin "codelldb" ''
+      exec ${vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb "$@"
+    '')
+
+    # Runtime deps of the above.
+    #
+    # gcc is not optional: nvim-treesitter compiles every parser locally, and
+    # nothing else on this machine puts a C compiler on the user's PATH.
+    # tree-sitter is not optional either — a few grammars (typescript and tsx
+    # among them) are generated rather than shipped pre-generated, so without
+    # the CLI opening a .ts file fails with "tree-sitter CLI not found" and the
+    # buffer never loads. Both failures are hard, not degraded.
+    gcc
+    tree-sitter
+    nodejs
+    tsx # runs a .ts file directly; the "Launch file (tsx)" debug config uses it
+    fzf # the binary fzf-lua drives
   ];
 
   xdg.userDirs = {
@@ -77,6 +132,7 @@ in
     "tmux".source = dotfile "tmux";
     "nvim".source = dotfile "nvim";
     "opencode".source = dotfile "opencode";
+    "looking-glass".source = dotfile "looking-glass";
   };
 
   home.file.".zshrc".source = dotfile "zsh/zshrc";

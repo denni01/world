@@ -3,6 +3,8 @@
 # Raphael iGPU at 0000:7a:00.0 — pinned in desktop.nix and POSTed by the BIOS.
 # Both 3090s are compute capability 8.6 and sit in separate IOMMU groups (14 and
 # 16), each alone with its own HDMI-audio function.
+#
+# 0000:01:00.0 leaves for the Windows guest while it runs — modules/nixos/windows-vm.
 {
   config,
   lib,
@@ -47,8 +49,14 @@ in
   services.xserver.videoDrivers = [ "nvidia" ];
 
   hardware.nvidia = {
-    open = true; # Ampere; NixOS requires this be explicit on 560+
-    modesetting.enable = true; # also emits nvidia-drm fbdev=1 via moduleParams
+    # Ampere is supported by both modules; open is upstream's default from 560.
+    # NixOS requires this be explicit.
+    open = true;
+    # Off deliberately: both 3090s are headless and the compositor is on the
+    # iGPU, so KMS buys nothing here. Note this alone does NOT stop nvidia_drm
+    # registering a DRM device per card — the modeset param only controls KMS —
+    # which is why nvidia_drm is blacklisted in boot.nix.
+    modesetting.enable = false;
     nvidiaSettings = true;
     package = nvidiaDriver;
 
@@ -57,6 +65,9 @@ in
     # which is exactly llama-swap's lifecycle, since a TTL unload leaves no
     # clients behind. The caps would silently reset before the next model
     # loaded. It also removes several seconds of driver re-init per model load.
+    #
+    # It also holds every GPU open, so the windows-vm hook stops it before
+    # libvirt can unbind the card, and starts it again on release.
     nvidiaPersistenced = true;
   };
 

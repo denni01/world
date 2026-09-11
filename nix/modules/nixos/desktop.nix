@@ -90,6 +90,14 @@ in
   # NVD_BACKEND belongs to nvidia-vaapi-driver and means nothing to radeonsi.
   // lib.optionalAttrs displayIsNvidia {
     NVD_BACKEND = "direct";
+  }
+  # Keep the session off the compute cards. GLVND ranks 10_nvidia.json above
+  # 50_mesa.json, so EGL clients open /dev/nvidia* and block the VM handover —
+  # see modules/nixos/windows-vm/README.md. CUDA is unaffected.
+  // lib.optionalAttrs (!displayIsNvidia) {
+    __EGL_VENDOR_LIBRARY_FILENAMES = "/run/opengl-driver/share/glvnd/egl_vendor.d/50_mesa.json";
+    __GLX_VENDOR_LIBRARY_NAME = "mesa";
+    VK_LOADER_DRIVERS_DISABLE = "*nvidia*";
   };
 
   # AQ_DRM_DEVICES must name a real /dev/dri/cardN. aquamarine does not resolve

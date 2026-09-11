@@ -4,7 +4,12 @@
 # and the NixOS package drops the update/reinstall commands from the `pihole`
 # script. Dashboard changes that map to pihole.toml revert on the next rebuild;
 # groups, clients and regex filters live in gravity.db and persist.
-{ config, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   # Upstream only signals FTL to reopen gravity.db when the file was absent, but
@@ -53,6 +58,14 @@ in
         domainNeeded = true;
         expandHosts = true;
       };
+
+      # Tailscale runs --accept-dns=false so it cannot displace Pi-hole, so
+      # forward the tailnet zones to the resolver tailscaled serves regardless.
+      # 100.64.0.0/10 is not on an octet boundary: 64 reverse zones, generated.
+      misc.dnsmasq_lines = [
+        "server=/ts.net/100.100.100.100"
+      ]
+      ++ map (n: "server=/${toString n}.100.in-addr.arpa/100.100.100.100") (lib.range 64 127);
 
       # The router already serves DHCP; two on one segment is a bad time.
       dhcp.active = false;

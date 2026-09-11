@@ -35,10 +35,12 @@ command -v zoxide  >/dev/null && eval "$(zoxide init zsh)"
 command -v fzf     >/dev/null && source <(fzf --zsh)
 
 # ── Aliases ──────────────────────────────────────────────────────────────────
+alias loginvm="ssh -p 2222 dennis@127.0.0.1"
+alias startvm="sudo systemctl start microvm@workvm"
+alias stopvm="sudo systemctl stop microvm@workvm"
+
 command -v eza >/dev/null && {
   alias ls='eza'
-  alias ll='eza -l --git'
-  alias la='eza -la --git'
   alias tree='eza --tree'
 }
 command -v bat >/dev/null && alias cat='bat --plain'

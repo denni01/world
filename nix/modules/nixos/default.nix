@@ -13,5 +13,8 @@
     ./performance.nix
     ./pihole.nix
     ./sandbox
+    ./tailscale.nix
+    ./windows-vm
+    ./workvm.nix
   ];
 }

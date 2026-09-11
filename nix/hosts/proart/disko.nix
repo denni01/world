@@ -103,6 +103,25 @@
                   "noatime"
                 ];
               };
+              # VM disk images: same reasoning as docker. A qcow2 is the
+              # worst case for CoW plus hourly snapshots — every guest write
+              # forks a block and every snapshot pins the fork.
+              "microvms" = {
+                mountpoint = "/var/lib/microvms";
+                mountOptions = [
+                  "nodatacow"
+                  "noatime"
+                ];
+              };
+              # Windows 11 guest image: same reasoning as microvms, and a 512 GiB
+              # raw file is an even worse case for it.
+              "vms" = {
+                mountpoint = "/var/lib/libvirt/images";
+                mountOptions = [
+                  "nodatacow"
+                  "noatime"
+                ];
+              };
               # No need to snapshot models
               "models" = {
                 mountpoint = "/var/lib/llm-models";
