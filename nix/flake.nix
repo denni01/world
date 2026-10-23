@@ -6,6 +6,11 @@
 
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
+    # claude-code releases daily. Its own input lets it be bumped without moving
+    # nixpkgs-unstable, which would rebuild the CUDA llama-cpp in
+    # modules/nixos/llm.nix.
+    nixpkgs-claude.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -58,7 +63,6 @@
           }
         ];
       };
-
 
       nixosConfigurations.workvm = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";

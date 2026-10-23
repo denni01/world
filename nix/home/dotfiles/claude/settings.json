@@ -1,13 +1,17 @@
 {
-  "model": "opus",
-  "effortLevel": "xhigh",
-  "tui": "fullscreen",
-  "theme": "dark-ansi",
-  "editorMode": "vim",
   "permissions": {
     "deny": [
       "Bash(git *)",
       "Bash(rm *)"
     ]
+  },
+  "model": "claude-opus-5-5",
+  "tui": "fullscreen",
+  "theme": "dark-ansi",
+  "editorMode": "vim",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "xhigh"
+    }
   }
 }

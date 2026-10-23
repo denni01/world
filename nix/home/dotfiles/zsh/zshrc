@@ -16,7 +16,7 @@ setopt SHARE_HISTORY          # and share between open shells
 setopt AUTO_CD                # `foo/` instead of `cd foo/`
 setopt INTERACTIVE_COMMENTS   # allow # comments when typing interactively
 setopt NO_BEEP
-bindkey -v                    # emacs keys; readline muscle memory still works
+bindkey -v                    # vi keys, to match nvim; Esc for normal mode
 
 # ── Completion ───────────────────────────────────────────────────────────────
 autoload -Uz compinit
@@ -38,6 +38,13 @@ command -v fzf     >/dev/null && source <(fzf --zsh)
 alias loginvm="ssh -p 2222 dennis@127.0.0.1"
 alias startvm="sudo systemctl start microvm@workvm"
 alias stopvm="sudo systemctl stop microvm@workvm"
+
+# Windows guest: start it if down, then attach. It keeps running when the
+# client exits; `virsh shutdown win11` is what gives the GPU back.
+winvm() {
+  virsh domstate win11 2>/dev/null | grep -q running || virsh start win11 || return
+  looking-glass-client "$@"
+}
 
 command -v eza >/dev/null && {
   alias ls='eza'

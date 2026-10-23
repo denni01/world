@@ -3,12 +3,19 @@
 {
   config,
   inputs,
+  lib,
   pkgs,
   ...
 }:
 
 let
   unstable = import inputs.nixpkgs-unstable {
+    inherit (pkgs.stdenv.hostPlatform) system;
+    config.allowUnfree = true;
+  };
+
+  # Updated on its own: nix flake update nixpkgs-claude
+  claudePkgs = import inputs.nixpkgs-claude {
     inherit (pkgs.stdenv.hostPlatform) system;
     config.allowUnfree = true;
   };
@@ -32,7 +39,7 @@ in
   # These land in /etc/profiles/per-user/dennis/bin, which is why that directory
   # has to be on elephant's PATH (modules/nixos/desktop.nix).
   home.packages = with pkgs; [
-    claude-code
+    claudePkgs.claude-code
     unstable.opencode
 
     chromium
@@ -137,7 +144,16 @@ in
 
   home.file.".zshrc".source = dotfile "zsh/zshrc";
 
-  home.file.".claude/settings.json".source = dotfile "claude/settings.json";
+  # Not home.file: that links via the read-only home-manager-files store path,
+  # and Claude Code saves settings by writing a temp file beside the first
+  # symlink hop and renaming it over — which fails with EROFS in the store, so
+  # /model, /effort and /config can't persist. A direct link to the working
+  # tree makes that hop writable.
+  home.activation.claudeSettings = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    run mkdir -p ${config.home.homeDirectory}/.claude
+    run ln -sfn ${repo}/home/dotfiles/claude/settings.json \
+      ${config.home.homeDirectory}/.claude/settings.json
+  '';
 
   # Berkeley Mono is licensed, so it is gitignored — and a flake only copies
   # git-tracked files into the store, which means it can never be packaged as a
